@@ -140,7 +140,7 @@ public class ViewerPanel3D extends OpenGLPanel
 	    		gl.glColor3f(0.9f,0.9f,0.9f);
 	    		map.drawNormals(gl);
 	    	}
-	    } else System.out.println("map is null");
+	    } //else System.out.println("map is null");
 	    
 	    gl.glClear(GL2.GL_DEPTH_BUFFER_BIT);
 	    

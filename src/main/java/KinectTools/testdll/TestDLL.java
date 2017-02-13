@@ -9,7 +9,7 @@ import edu.ufl.digitalworlds.j4k.Skeleton;
 public class TestDLL {
 
 	private static void takethAway() {
-		garbage myGarbage = new garbage();
+		Kinect1 myGarbage = new Kinect1();
 
 	}
 

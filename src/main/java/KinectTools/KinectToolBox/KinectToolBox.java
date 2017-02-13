@@ -4,9 +4,6 @@ import java.awt.EventQueue;
 
 import javax.swing.JFrame;
 
-import KinectTools.KinectToolBox.Kinect;
-import edu.ufl.digitalworlds.j4k.J4KSDK;
-
 class JFrameThread implements Runnable {
 	private JFrame frame;
 	
