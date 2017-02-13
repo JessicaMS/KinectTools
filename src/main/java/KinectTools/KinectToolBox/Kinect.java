@@ -5,6 +5,7 @@ import javax.swing.JLabel;
 import edu.ufl.digitalworlds.j4k.DepthMap;
 import edu.ufl.digitalworlds.j4k.J4KSDK;
 import edu.ufl.digitalworlds.j4k.Skeleton;
+import edu.ufl.digitalworlds.j4k.VideoFrame;
 
 
 /*
@@ -43,7 +44,7 @@ import edu.ufl.digitalworlds.j4k.Skeleton;
  */
 public class Kinect extends J4KSDK{
 
-	ViewerPanel3D viewer=null;
+	private ViewerPanel3D viewer=null;
 	JLabel label=null;
 	boolean mask_players=false;
 	public void maskPlayers(boolean flag){mask_players=flag;}
@@ -67,6 +68,10 @@ public class Kinect extends J4KSDK{
 	public void updateTextureUsingInfrared(boolean flag)
 	{
 		use_infrared=flag;
+	}
+	
+	public VideoFrame getVideoTexture() {
+		return viewer.getVideoFrame();
 	}
 	
 	@Override
@@ -101,7 +106,7 @@ public class Kinect extends J4KSDK{
 
 	@Override
 	public void onColorFrameEvent(byte[] data) {
-		System.out.println("Color frame event");
+		//System.out.println("Color frame event");
 		if(viewer==null || viewer.videoTexture==null || use_infrared) {
 			return;
 		}
