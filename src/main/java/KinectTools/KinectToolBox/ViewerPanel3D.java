@@ -50,14 +50,19 @@ public class ViewerPanel3D extends OpenGLPanel
 	private float view_rotx = 0.0f, view_roty = 0.0f, view_rotz = 0.0f;
 	private int prevMouseX, prevMouseY;
 	
-	DepthMap map=null;
-	boolean is_playing=false;
-	boolean show_video=false;
-	boolean showColorStream=false;
+	private DepthMap map=null;
+//	private boolean is_playing=false;
+	private boolean show_video=false;
+	private boolean drawFlatTexture=false;
 	
 	public void setShowVideo(boolean flag){show_video=flag;}
 	
-	public void setShowColorStream(boolean flag){showColorStream=flag;}
+	public void setDrawFlatTexture(boolean flag) {
+		drawFlatTexture=flag;
+		if (flag == true) {
+			map = null;
+		}
+	}
 	
 	VideoFrame videoTexture;
 	
@@ -108,8 +113,8 @@ public class ViewerPanel3D extends OpenGLPanel
 	    rotate(view_rotz, 0.0, 0.0, 1.0);
 	    translate(0,0,2);        
 	    
-	    if(showColorStream) {
-	    	pushMatrix();
+	    if(drawFlatTexture) {
+	    	//pushMatrix();
 			
 		    gl.glDisable(GL2.GL_LIGHTING);
 		    gl.glEnable(GL2.GL_TEXTURE_2D);
@@ -122,7 +127,7 @@ public class ViewerPanel3D extends OpenGLPanel
 		    popMatrix();
 	    }
 	    
-	    if(map!=null) 
+	    if(getMap()!=null) 
 	    {
 	    	if(show_video)
 	    	{
@@ -130,7 +135,7 @@ public class ViewerPanel3D extends OpenGLPanel
 	    		gl.glEnable(GL2.GL_TEXTURE_2D);
 	    		gl.glColor3f(1f,1f,1f);
 	    		videoTexture.use(gl);
-	    		map.drawTexture(gl);
+	    		getMap().drawTexture(gl);
 	    		gl.glDisable(GL2.GL_TEXTURE_2D);
 	    	}
 	    	else
@@ -138,7 +143,7 @@ public class ViewerPanel3D extends OpenGLPanel
 	    		gl.glEnable(GL2.GL_LIGHTING);
 	    		gl.glDisable(GL2.GL_TEXTURE_2D);
 	    		gl.glColor3f(0.9f,0.9f,0.9f);
-	    		map.drawNormals(gl);
+	    		getMap().drawNormals(gl);
 	    	}
 	    } //else System.out.println("map is null");
 	    
@@ -186,6 +191,14 @@ public class ViewerPanel3D extends OpenGLPanel
 	}
 	
 	
+	public DepthMap getMap() {
+		return map;
+	}
+
+	public void setMap(DepthMap map) {
+		this.map = map;
+	}
+
 	public VideoFrame getVideoFrame() {
 	
 		try {

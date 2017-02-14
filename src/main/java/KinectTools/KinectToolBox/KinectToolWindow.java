@@ -41,6 +41,8 @@ import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
 
 public class KinectToolWindow extends JFrame implements ActionListener, WindowListener {
+	static final boolean DESIGN_MODE = false;
+
 	Kinect myKinect;
 	ViewerPanel3D mainPanel;
 
@@ -50,6 +52,12 @@ public class KinectToolWindow extends JFrame implements ActionListener, WindowLi
 
 	boolean showSkeletons=false;
 	boolean seatedSkeleton=false;
+	static final int colorStream = 1;
+	static final int depthStream = 2;
+	static final int depthWithTexture = 3;
+	static final int IRStream = 4;
+	
+	private int viewModeState = 1;
 
 
 	public void setLoadingProgress(String msg,int value)
@@ -77,6 +85,8 @@ public class KinectToolWindow extends JFrame implements ActionListener, WindowLi
 		setLoadingProgress("Intitializing Kinect...",20);
 		myKinect = new Kinect();
 
+		myKinect.setDepthResolution(320, 240);
+		myKinect.setColorResolution(640, 480);
 		if(!myKinect.start(J4KSDK.COLOR))
 		{
 			showErrorDialog("ERROR", "<html><center><br>ERROR: The Kinect device could not be initialized.<br><br>1. Check if the Microsoft's Kinect SDK was succesfully installed on this computer.<br> 2. Check if the Kinect is plugged into a power outlet.<br>3. Check if the Kinect is connected to a USB port of this computer.</center>");
@@ -86,7 +96,6 @@ public class KinectToolWindow extends JFrame implements ActionListener, WindowLi
 	private void resetKinect()
 	{
 		//if(turn_off.getText().compareTo("Turn on")==0) return;
-
 		myKinect.stop();
 		//		int depth_res=J4K1.NUI_IMAGE_RESOLUTION_INVALID;
 		//		if(depth_resolution.getSelectedIndex()==0) myKinect.setDepthResolution(80, 60);//  depth_res=J4K1.NUI_IMAGE_RESOLUTION_80x60;
@@ -97,17 +106,41 @@ public class KinectToolWindow extends JFrame implements ActionListener, WindowLi
 		//		if(video_resolution.getSelectedIndex()==0) myKinect.setColorResolution(640, 480);//video_res=J4K1.NUI_IMAGE_RESOLUTION_640x480;
 		//		else if(video_resolution.getSelectedIndex()==1) myKinect.setDepthResolution(1280, 960);//video_res=J4K1.NUI_IMAGE_RESOLUTION_1280x960;
 
-		int flags= Kinect.COLOR;
-
+		int flags= 0;
 		if (showSkeletons) flags=flags|Kinect.SKELETON;
-		//flags=flags|Kinect.DEPTH;
-		//flags=flags|Kinect.XYZ;
-		//if(show_infrared.isSelected()) {flags=flags|Kinect.INFRARED; myKinect.updateTextureUsingInfrared(true);}
-		//else myKinect.updateTextureUsingInfrared(false);
+
+
+		if (viewModeState == colorStream) {
+			flags = flags|Kinect.COLOR;
+			mainPanel.setDrawFlatTexture(true);
+			
+		} else if (viewModeState == depthStream || viewModeState == depthWithTexture) {
+			flags = flags|Kinect.COLOR;
+			flags = flags|Kinect.DEPTH;
+			flags = flags|Kinect.XYZ;
+			flags = flags|Kinect.UV;
+
+			mainPanel.setDrawFlatTexture(false);
+		} 
+		
+		if (viewModeState == IRStream) {
+			flags = flags|Kinect.INFRARED;
+			myKinect.updateTextureUsingInfrared(true);
+			mainPanel.setDrawFlatTexture(true);
+		} else {
+			myKinect.updateTextureUsingInfrared(false);
+		}
+		
+		if (viewModeState == depthWithTexture) {
+			mainPanel.setShowVideo(true);
+			myKinect.computeUV(true);
+		} else {
+			mainPanel.setShowVideo(false);
+			myKinect.computeUV(false);
+		}
+
 
 		myKinect.start(flags);
-		//		if(show_video.isSelected())myKinect.computeUV(true);
-		//		else myKinect.computeUV(false);
 		//		if(seated_skeleton.isSelected())myKinect.setSeatedSkeletonTracking(true);
 		//		if(near_mode.isSelected()) myKinect.setNearMode(true);
 	}
@@ -190,7 +223,7 @@ public class KinectToolWindow extends JFrame implements ActionListener, WindowLi
 
 		byte[] RGB = new byte[myKinect.getColorWidth()* myKinect.getColorHeight()*3];
 
-		// (byte) bgra to rgb (int)
+		// OpenGL uses:  GL2.GL_BGRA, create RGB byte array
 		int j=0;
 		for (int i = 0;  i < imageData.length; i += 4) {
 			byte b, g, r;
@@ -204,7 +237,6 @@ public class KinectToolWindow extends JFrame implements ActionListener, WindowLi
 			RGB[j++] = r;
 		}
 
-		//TODO:  4BYTE ABGR needs to be BGRA...  I think, OpenGL uses:  GL2.GL_BGRA
 		BufferedImage image = new BufferedImage(myKinect.getColorWidth(), myKinect.getColorHeight(), BufferedImage.TYPE_3BYTE_BGR);
 		image.setData(Raster.createRaster(image.getSampleModel(), new DataBufferByte(RGB, RGB.length), new Point() ));
 		System.out.println("Input size: " + image.getHeight());
@@ -215,6 +247,37 @@ public class KinectToolWindow extends JFrame implements ActionListener, WindowLi
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+
+	}
+
+	void guiActionHandler(ActionEvent e) {
+		switch (e.getActionCommand()) {
+		case "Overlay Skeleton":
+			showSkeletons = !showSkeletons;
+			resetKinect();
+			break;
+		case "Color Stream":
+			viewModeState = colorStream;
+			resetKinect();
+			break;
+		case "Depth Stream":
+			viewModeState = depthStream;
+			resetKinect();
+			break;
+		case "Infrared Stream":
+			viewModeState = IRStream;
+			resetKinect();
+			break;
+		case "Depth with Texture":
+			viewModeState = depthWithTexture;
+			resetKinect();
+			break;
+
+		default:
+			System.out.println("Unhandled window event:" + e.getActionCommand());
+			break;
+		}
+
 
 	}
 
@@ -230,32 +293,35 @@ public class KinectToolWindow extends JFrame implements ActionListener, WindowLi
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
 		GridBagLayout gbl_contentPane = new GridBagLayout();
-		gbl_contentPane.columnWidths = new int[]{45, 101, 104, 75, 203, 61, 0};
+		gbl_contentPane.columnWidths = new int[]{66, 74, 104, 75, 203, 61, 0};
 		gbl_contentPane.rowHeights = new int[]{383, 14, 14, 27, 26, 27, 0, 0, 0, 0, 0};
 		gbl_contentPane.columnWeights = new double[]{1.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
 		gbl_contentPane.rowWeights = new double[]{1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
 		contentPane.setLayout(gbl_contentPane);
 
-		JRadioButton rdbtnNewRadioButton = new JRadioButton("Texture Stream");
-		rdbtnNewRadioButton.setSelected(true);
-		buttonGroup.add(rdbtnNewRadioButton);
-		GridBagConstraints gbc_rdbtnNewRadioButton = new GridBagConstraints();
-		gbc_rdbtnNewRadioButton.fill = GridBagConstraints.BOTH;
-		gbc_rdbtnNewRadioButton.insets = new Insets(0, 0, 5, 5);
-		gbc_rdbtnNewRadioButton.gridx = 1;
-		gbc_rdbtnNewRadioButton.gridy = 2;
-		contentPane.add(rdbtnNewRadioButton, gbc_rdbtnNewRadioButton);
-
 
 		final JCheckBox chckbxOverlaySkeleton = new JCheckBox("Overlay Skeleton");
 		chckbxOverlaySkeleton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				if (chckbxOverlaySkeleton.isSelected()) {
-					showSkeletons = true;
-				} else showSkeletons = false;
-				resetKinect();
+				guiActionHandler(e);
 			}
 		});
+
+		JRadioButton rdbtnTexture = new JRadioButton("Color Stream");
+		rdbtnTexture.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				guiActionHandler(e);
+			}
+		});
+		rdbtnTexture.setSelected(true);
+		buttonGroup.add(rdbtnTexture);
+		GridBagConstraints gbc_rdbtnTexture = new GridBagConstraints();
+		gbc_rdbtnTexture.anchor = GridBagConstraints.WEST;
+		gbc_rdbtnTexture.fill = GridBagConstraints.VERTICAL;
+		gbc_rdbtnTexture.insets = new Insets(0, 0, 5, 5);
+		gbc_rdbtnTexture.gridx = 1;
+		gbc_rdbtnTexture.gridy = 2;
+		contentPane.add(rdbtnTexture, gbc_rdbtnTexture);
 		GridBagConstraints gbc_chckbxOverlaySkeleton = new GridBagConstraints();
 		gbc_chckbxOverlaySkeleton.anchor = GridBagConstraints.WEST;
 		gbc_chckbxOverlaySkeleton.fill = GridBagConstraints.VERTICAL;
@@ -264,26 +330,31 @@ public class KinectToolWindow extends JFrame implements ActionListener, WindowLi
 		gbc_chckbxOverlaySkeleton.gridy = 2;
 		contentPane.add(chckbxOverlaySkeleton, gbc_chckbxOverlaySkeleton);
 
-		JRadioButton rdbtnNewRadioButton_1 = new JRadioButton("Depth Stream");
-		buttonGroup.add(rdbtnNewRadioButton_1);
-		GridBagConstraints gbc_rdbtnNewRadioButton_1 = new GridBagConstraints();
-		gbc_rdbtnNewRadioButton_1.anchor = GridBagConstraints.WEST;
-		gbc_rdbtnNewRadioButton_1.fill = GridBagConstraints.VERTICAL;
-		gbc_rdbtnNewRadioButton_1.insets = new Insets(0, 0, 5, 5);
-		gbc_rdbtnNewRadioButton_1.gridx = 1;
-		gbc_rdbtnNewRadioButton_1.gridy = 3;
-		contentPane.add(rdbtnNewRadioButton_1, gbc_rdbtnNewRadioButton_1);
 
-		JCheckBox chckbxLogEvents = new JCheckBox("Log Texture Events");
-		chckbxLogEvents.addActionListener(this);
-		chckbxLogEvents.setSelected(true);
-		GridBagConstraints gbc_chckbxLogEvents = new GridBagConstraints();
-		gbc_chckbxLogEvents.anchor = GridBagConstraints.WEST;
-		gbc_chckbxLogEvents.fill = GridBagConstraints.VERTICAL;
-		gbc_chckbxLogEvents.insets = new Insets(0, 0, 5, 5);
-		gbc_chckbxLogEvents.gridx = 4;
-		gbc_chckbxLogEvents.gridy = 3;
-		contentPane.add(chckbxLogEvents, gbc_chckbxLogEvents);
+
+		JCheckBox chckbxSitting = new JCheckBox("Sitting Skeleton");
+		chckbxSitting.addActionListener(this);
+
+		JRadioButton rdbtnInfrared = new JRadioButton("Infrared Stream");
+		rdbtnInfrared.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				guiActionHandler(e);
+			}
+		});
+		buttonGroup.add(rdbtnInfrared);
+		GridBagConstraints gbc_rdbtnInfrared = new GridBagConstraints();
+		gbc_rdbtnInfrared.anchor = GridBagConstraints.WEST;
+		gbc_rdbtnInfrared.insets = new Insets(0, 0, 5, 5);
+		gbc_rdbtnInfrared.gridx = 1;
+		gbc_rdbtnInfrared.gridy = 3;
+		contentPane.add(rdbtnInfrared, gbc_rdbtnInfrared);
+		GridBagConstraints gbc_chckbxSitting = new GridBagConstraints();
+		gbc_chckbxSitting.anchor = GridBagConstraints.WEST;
+		gbc_chckbxSitting.fill = GridBagConstraints.VERTICAL;
+		gbc_chckbxSitting.insets = new Insets(0, 0, 5, 5);
+		gbc_chckbxSitting.gridx = 4;
+		gbc_chckbxSitting.gridy = 3;
+		contentPane.add(chckbxSitting, gbc_chckbxSitting);
 
 
 
@@ -291,6 +362,68 @@ public class KinectToolWindow extends JFrame implements ActionListener, WindowLi
 		setLoadingProgress("Loading ...",0);
 
 		initializeKinect();
+
+		JRadioButton rdbtnDepth = new JRadioButton("Depth Stream");
+		rdbtnDepth.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				guiActionHandler(e);
+			}
+		});
+		buttonGroup.add(rdbtnDepth);
+		GridBagConstraints gbc_rdbtnDepth = new GridBagConstraints();
+		gbc_rdbtnDepth.anchor = GridBagConstraints.WEST;
+		gbc_rdbtnDepth.fill = GridBagConstraints.VERTICAL;
+		gbc_rdbtnDepth.insets = new Insets(0, 0, 5, 5);
+		gbc_rdbtnDepth.gridx = 1;
+		gbc_rdbtnDepth.gridy = 4;
+		contentPane.add(rdbtnDepth, gbc_rdbtnDepth);
+
+		JRadioButton rdbtnDepthTexture = new JRadioButton("Depth with Texture");
+		rdbtnDepthTexture.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				guiActionHandler(e);
+			}
+		});
+
+		JButton btnCapture = new JButton("Capture Flat Texture");
+		btnCapture.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				captureImage();
+			}
+		});
+
+
+		GridBagConstraints gbc_btnCapture = new GridBagConstraints();
+		gbc_btnCapture.insets = new Insets(0, 0, 5, 5);
+		gbc_btnCapture.fill = GridBagConstraints.BOTH;
+		gbc_btnCapture.gridx = 4;
+		gbc_btnCapture.gridy = 5;
+		contentPane.add(btnCapture, gbc_btnCapture);
+
+		JLabel lblNewLabel = new JLabel("(Accelerometer Data)");
+		GridBagConstraints gbc_lblNewLabel = new GridBagConstraints();
+		gbc_lblNewLabel.insets = new Insets(0, 0, 5, 5);
+		gbc_lblNewLabel.gridx = 4;
+		gbc_lblNewLabel.gridy = 6;
+		contentPane.add(lblNewLabel, gbc_lblNewLabel);
+		myKinect.setLabel( lblNewLabel);
+
+		buttonGroup.add(rdbtnDepthTexture);
+		GridBagConstraints gbc_radioDepthTexture = new GridBagConstraints();
+		gbc_radioDepthTexture.insets = new Insets(0, 0, 5, 5);
+		gbc_radioDepthTexture.gridx = 1;
+		gbc_radioDepthTexture.gridy = 5;
+		contentPane.add(rdbtnDepthTexture, gbc_radioDepthTexture);
+
+		setLoadingProgress("Intitializing OpenGL...",60);
+		mainPanel= new ViewerPanel3D();
+		mainPanel.setShowVideo(false);
+		mainPanel.setDrawFlatTexture(true);
+		myKinect.setViewer(mainPanel);
+		mainPanel.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
+		mainPanel.setBounds(0, 0, 609, 329);
+
+		progressFrame.setVisible(false);
 
 		JPanel panel = new JPanel();
 		panel.setBackground(Color.ORANGE);
@@ -301,36 +434,12 @@ public class KinectToolWindow extends JFrame implements ActionListener, WindowLi
 		gbc_panel.fill = GridBagConstraints.BOTH;
 		gbc_panel.gridx = 0;
 		gbc_panel.gridy = 0;
-		//contentPane.add(panel, gbc_panel);
 
-		JButton btnCapture = new JButton("Capture");
-		btnCapture.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				captureImage();
-			}
-		});
-		GridBagConstraints gbc_btnCapture = new GridBagConstraints();
-		gbc_btnCapture.insets = new Insets(0, 0, 5, 5);
-		gbc_btnCapture.fill = GridBagConstraints.BOTH;
-		gbc_btnCapture.gridx = 4;
-		gbc_btnCapture.gridy = 4;
-		contentPane.add(btnCapture, gbc_btnCapture);
-
-
-		setLoadingProgress("Intitializing OpenGL...",60);
-		ViewerPanel3D mainPanel= new ViewerPanel3D();
-		mainPanel.setShowVideo(false);
-		mainPanel.setShowColorStream(true);
-		myKinect.setViewer(mainPanel);
-		mainPanel.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
-		mainPanel.setBounds(0, 0, 609, 329);
-
-
-		progressFrame.setVisible(false);
-
-		contentPane.add(mainPanel, gbc_panel.clone());
-
-
+		if (DESIGN_MODE) {
+			contentPane.add(panel, gbc_panel);
+		} else {
+			contentPane.add(mainPanel, gbc_panel.clone());	
+		}
 
 	}
 
@@ -372,7 +481,6 @@ public class KinectToolWindow extends JFrame implements ActionListener, WindowLi
 
 	}
 	public void actionPerformed(ActionEvent e) {
-		// TODO Auto-generated method stub
 
 	}
 }
