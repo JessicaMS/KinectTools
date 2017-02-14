@@ -91,7 +91,7 @@ public class Kinect extends J4KSDK{
 			map.setPlayerIndex(depth_frame, player_index);
 			map.maskPlayers();
 		}
-		viewer.map=map;
+		viewer.setMap(map);
 	}
 
 	@Override
