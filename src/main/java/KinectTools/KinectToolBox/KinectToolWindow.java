@@ -242,7 +242,7 @@ public class KinectToolWindow extends JFrame implements ActionListener, WindowLi
 		System.out.println("Input size: " + image.getHeight());
 
 		try {
-			ImageIO.write(image, "png", new File("c:/Cygwin64Data/home/seibert/new.png"));
+			ImageIO.write(image, "png", new File("c:/captures/new.png"));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
