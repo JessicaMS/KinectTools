@@ -1,4 +1,4 @@
-package KinectTools.KinectToolBox;
+package kinectToolBox;
 
 import java.awt.EventQueue;
 

@@ -1,4 +1,4 @@
-package KinectTools.multiplekinectapp;
+package KinectTools.MultipleKinectApp;
 
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;

@@ -1,4 +1,4 @@
-package KinectTools.KinectToolBox;
+package kinect;
 
 import java.awt.Dimension;
 import java.awt.event.MouseEvent;
