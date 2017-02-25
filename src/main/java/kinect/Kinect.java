@@ -1,4 +1,4 @@
-package KinectTools.KinectToolBox;
+package kinect;
 
 import javax.swing.JLabel;
 

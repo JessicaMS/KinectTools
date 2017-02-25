@@ -1,4 +1,4 @@
-package KinectTools.KinectToolBox;
+package kinectToolBox;
 import java.awt.BorderLayout;
 import java.awt.Cursor;
 import java.awt.Dimension;
@@ -19,10 +19,10 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.JCheckBox;
-import KinectTools.KinectToolBox.Kinect;
-import KinectTools.KinectToolBox.ViewerPanel3D;
+
 import edu.ufl.digitalworlds.j4k.J4KSDK;
-import edu.ufl.digitalworlds.j4k.VideoFrame;
+import kinect.Kinect;
+import kinect.ViewerPanel3D;
 
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
@@ -36,11 +36,15 @@ import java.io.IOException;
 import java.awt.event.ActionEvent;
 import javax.swing.JButton;
 import java.awt.Color;
-import java.awt.FlowLayout;
 import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
 
 public class KinectToolWindow extends JFrame implements ActionListener, WindowListener {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
 	static final boolean DESIGN_MODE = false;
 
 	Kinect myKinect;
@@ -107,6 +111,7 @@ public class KinectToolWindow extends JFrame implements ActionListener, WindowLi
 		//		else if(video_resolution.getSelectedIndex()==1) myKinect.setDepthResolution(1280, 960);//video_res=J4K1.NUI_IMAGE_RESOLUTION_1280x960;
 
 		int flags= 0;
+
 		if (showSkeletons) flags=flags|Kinect.SKELETON;
 
 
@@ -141,7 +146,11 @@ public class KinectToolWindow extends JFrame implements ActionListener, WindowLi
 
 
 		myKinect.start(flags);
-		//		if(seated_skeleton.isSelected())myKinect.setSeatedSkeletonTracking(true);
+		if(seatedSkeleton) {
+			myKinect.setSeatedSkeletonTracking(true);
+		} else {
+			myKinect.setSeatedSkeletonTracking(false);
+		}
 		//		if(near_mode.isSelected()) myKinect.setNearMode(true);
 	}
 
@@ -186,6 +195,11 @@ public class KinectToolWindow extends JFrame implements ActionListener, WindowLi
 		JOptionPane.setRootFrame(progressFrame);
 
 		JPanel progressPanel = new JPanel() {
+			/**
+			 * 
+			 */
+			private static final long serialVersionUID = 1L;
+
 			public Insets getInsets() {
 				return new Insets(40,30,20,30);
 			}
@@ -256,6 +270,10 @@ public class KinectToolWindow extends JFrame implements ActionListener, WindowLi
 			showSkeletons = !showSkeletons;
 			resetKinect();
 			break;
+		case "Sitting Skeleton":
+			seatedSkeleton = !seatedSkeleton;
+			resetKinect();
+			break;
 		case "Color Stream":
 			viewModeState = colorStream;
 			resetKinect();
@@ -277,7 +295,6 @@ public class KinectToolWindow extends JFrame implements ActionListener, WindowLi
 			System.out.println("Unhandled window event:" + e.getActionCommand());
 			break;
 		}
-
 
 	}
 
@@ -333,7 +350,11 @@ public class KinectToolWindow extends JFrame implements ActionListener, WindowLi
 
 
 		JCheckBox chckbxSitting = new JCheckBox("Sitting Skeleton");
-		chckbxSitting.addActionListener(this);
+		chckbxSitting.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				guiActionHandler(e);
+			}
+		});
 
 		JRadioButton rdbtnInfrared = new JRadioButton("Infrared Stream");
 		rdbtnInfrared.addActionListener(new ActionListener() {
